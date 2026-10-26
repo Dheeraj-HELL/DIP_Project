@@ -135,23 +135,16 @@ class ImageCompressionGUI:
         # Download/Save buttons
         ttk.Button(
             control_frame,
-            text="💾 Save Adaptive",
-            command=self.save_adaptive,
-            width=18
-        ).grid(row=1, column=4, padx=8, pady=8)
+            text="🖼️ Export Reconstructed Images",
+            command=self.save_reconstructed_images,
+            width=25
+        ).grid(row=1, column=4, columnspan=2, padx=8, pady=8)
 
         ttk.Button(
             control_frame,
-            text="💾 Save Standard",
-            command=self.save_standard,
-            width=18
-        ).grid(row=1, column=5, padx=8, pady=8)
-
-        ttk.Button(
-            control_frame,
-            text="📦 Save Compressed Data",
+            text="📦 Save Actual Compressed Files (.pkl)",
             command=self.save_compressed_data,
-            width=20
+            width=28
         ).grid(row=1, column=6, padx=8, pady=8)
 
         # Image display area
@@ -474,110 +467,98 @@ INTERPRETATION:
         self.metrics_text.delete(1.0, tk.END)
         self.metrics_text.insert(1.0, metrics)
 
-    def save_adaptive(self):
-        """Save the adaptive compressed image."""
-        if self.reconstructed_adaptive is None:
-            messagebox.showwarning("Warning", "Please compress the image using Adaptive method first.")
-            return
-
-        try:
-            # Ask user for save location
-            filepath = filedialog.asksaveasfilename(
-                title="Save Adaptive Compressed Image",
-                defaultextension=".png",
-                filetypes=[
-                    ("PNG files", "*.png"),
-                    ("JPEG files", "*.jpg"),
-                    ("BMP files", "*.bmp"),
-                    ("All files", "*.*")
-                ],
-                initialfile="adaptive_compressed.png"
-            )
-
-            if filepath:
-                # Save the reconstructed image
-                cv2.imwrite(filepath, self.reconstructed_adaptive)
-                messagebox.showinfo("Success", f"Adaptive compressed image saved to:\n{filepath}")
-
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to save image:\n{str(e)}")
-
-    def save_standard(self):
-        """Save the standard compressed image."""
-        if self.reconstructed_standard is None:
-            messagebox.showwarning("Warning", "Please compress the image using Standard method first.")
-            return
-
-        try:
-            # Ask user for save location
-            filepath = filedialog.asksaveasfilename(
-                title="Save Standard Compressed Image",
-                defaultextension=".png",
-                filetypes=[
-                    ("PNG files", "*.png"),
-                    ("JPEG files", "*.jpg"),
-                    ("BMP files", "*.bmp"),
-                    ("All files", "*.*")
-                ],
-                initialfile="standard_compressed.png"
-            )
-
-            if filepath:
-                # Save the reconstructed image
-                cv2.imwrite(filepath, self.reconstructed_standard)
-                messagebox.showinfo("Success", f"Standard compressed image saved to:\n{filepath}")
-
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to save image:\n{str(e)}")
-
-    def save_compressed_data(self):
-        """Save the compressed data (pickle format) for both methods."""
-        if self.compressed_adaptive is None and self.compressed_standard is None:
+    def save_reconstructed_images(self):
+        """Save the reconstructed images (for visual comparison, not compressed)."""
+        if self.reconstructed_adaptive is None and self.reconstructed_standard is None:
             messagebox.showwarning("Warning", "Please compress the image first.")
             return
 
         try:
-            # Create a directory to save all compressed data
+            # Ask user to select directory
             directory = filedialog.askdirectory(
-                title="Select Directory to Save Compressed Data"
+                title="Select Directory to Save Reconstructed Images"
             )
 
             if directory:
                 saved_files = []
 
-                # Save adaptive compressed data
-                if self.compressed_adaptive is not None:
-                    adaptive_path = os.path.join(directory, "compressed_adaptive.pkl")
-                    self.compressor.save_compressed(self.compressed_adaptive, adaptive_path)
-                    saved_files.append("compressed_adaptive.pkl")
-
-                # Save standard compressed data
-                if self.compressed_standard is not None:
-                    standard_path = os.path.join(directory, "compressed_standard.pkl")
-                    self.compressor.save_compressed(self.compressed_standard, standard_path)
-                    saved_files.append("compressed_standard.pkl")
-
-                # Save reconstructed images as well
+                # Save adaptive reconstructed image
                 if self.reconstructed_adaptive is not None:
-                    adaptive_img_path = os.path.join(directory, "reconstructed_adaptive.png")
-                    cv2.imwrite(adaptive_img_path, self.reconstructed_adaptive)
+                    adaptive_path = os.path.join(directory, "reconstructed_adaptive.png")
+                    cv2.imwrite(adaptive_path, self.reconstructed_adaptive)
                     saved_files.append("reconstructed_adaptive.png")
 
+                # Save standard reconstructed image
                 if self.reconstructed_standard is not None:
-                    standard_img_path = os.path.join(directory, "reconstructed_standard.png")
-                    cv2.imwrite(standard_img_path, self.reconstructed_standard)
+                    standard_path = os.path.join(directory, "reconstructed_standard.png")
+                    cv2.imwrite(standard_path, self.reconstructed_standard)
                     saved_files.append("reconstructed_standard.png")
 
-                # Save original grayscale for comparison
+                # Save original for comparison
                 if self.original_gray is not None:
                     original_path = os.path.join(directory, "original_grayscale.png")
                     cv2.imwrite(original_path, self.original_gray)
                     saved_files.append("original_grayscale.png")
 
                 messagebox.showinfo(
-                    "Success",
-                    f"Compressed data saved to:\n{directory}\n\nFiles saved:\n" + "\n".join(f"• {f}" for f in saved_files)
+                    "Reconstructed Images Saved",
+                    f"⚠️ NOTE: These are RECONSTRUCTED (decompressed) images.\n"
+                    f"They show the QUALITY but are NOT compressed.\n\n"
+                    f"For actual compressed files, use 'Save Actual Compressed Files'.\n\n"
+                    f"Saved to: {directory}\n\n"
+                    f"Files:\n" + "\n".join(f"• {f}" for f in saved_files)
                 )
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save images:\n{str(e)}")
+
+    def save_compressed_data(self):
+        """Save the ACTUAL compressed data (.pkl files) - these are the real compressed files!"""
+        if self.compressed_adaptive is None and self.compressed_standard is None:
+            messagebox.showwarning("Warning", "Please compress the image first.")
+            return
+
+        try:
+            # Ask user to select directory
+            directory = filedialog.askdirectory(
+                title="Select Directory to Save ACTUAL Compressed Files"
+            )
+
+            if directory:
+                saved_files = []
+                file_sizes = []
+
+                # Save adaptive compressed data
+                if self.compressed_adaptive is not None:
+                    adaptive_path = os.path.join(directory, "compressed_adaptive.pkl")
+                    self.compressor.save_compressed(self.compressed_adaptive, adaptive_path)
+                    size_kb = os.path.getsize(adaptive_path) / 1024
+                    saved_files.append(f"compressed_adaptive.pkl ({size_kb:.2f} KB)")
+                    file_sizes.append(("Adaptive", size_kb))
+
+                # Save standard compressed data
+                if self.compressed_standard is not None:
+                    standard_path = os.path.join(directory, "compressed_standard.pkl")
+                    self.compressor.save_compressed(self.compressed_standard, standard_path)
+                    size_kb = os.path.getsize(standard_path) / 1024
+                    saved_files.append(f"compressed_standard.pkl ({size_kb:.2f} KB)")
+                    file_sizes.append(("Standard", size_kb))
+
+                # Calculate original size for comparison
+                original_kb = self.original_gray.nbytes / 1024 if self.original_gray is not None else 0
+
+                # Build message
+                message = f"✅ ACTUAL COMPRESSED FILES SAVED!\n\n"
+                message += f"Location: {directory}\n\n"
+                message += "Files (these ARE compressed):\n" + "\n".join(f"• {f}" for f in saved_files)
+                message += f"\n\n📊 COMPRESSION SUMMARY:\n"
+                message += f"Original (raw): {original_kb:.2f} KB\n"
+                for method, size in file_sizes:
+                    ratio = original_kb / size if size > 0 else 0
+                    message += f"{method}: {size:.2f} KB ({ratio:.1f}× compression)\n"
+                message += f"\n💡 TIP: These .pkl files can be loaded back\nand decompressed using the algorithm!"
+
+                messagebox.showinfo("Compressed Files Saved", message)
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save compressed data:\n{str(e)}")
